@@ -1,15 +1,21 @@
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:21-jdk-alpine AS build
 
 WORKDIR /app
 
-# Install bash in case mvnw requires it on Alpine
 RUN apk add --no-cache bash
 
 COPY pom.xml .
 COPY .mvn .mvn
 COPY mvnw .
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+
 COPY src ./src
+RUN ./mvnw package -DskipTests -B
 
-RUN chmod +x mvnw && ./mvnw package -DskipTests
+FROM eclipse-temurin:21-jre-alpine
 
-CMD ["java", "-jar", "target/aulabd-0.0.1-SNAPSHOT.jar"]
+WORKDIR /app
+
+COPY --from=build /app/target/teste-0.0.1-SNAPSHOT.jar app.jar
+
+CMD ["java", "-jar", "app.jar"]
